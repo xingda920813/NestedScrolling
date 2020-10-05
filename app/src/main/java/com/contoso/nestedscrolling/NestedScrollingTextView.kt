@@ -40,14 +40,11 @@ class NestedScrollingTextView @JvmOverloads constructor(
     private var downY = 0
     private var lastY = 0
     private var maxScrollY = 0
-    private var maxScrollX = 0
 
     private var scrollParent: NestedScrollingRecyclerView? = null
     private val parentLocation = IntArray(2)
     private val selfLocation = IntArray(2)
     private var isScrollingVertically = false
-    private var isScrollingHorizontally = false
-    private var isScrollDisabled = false
     private var renderingHeight = 0
 
     private val paint: Paint by lazy {
@@ -76,53 +73,35 @@ class NestedScrollingTextView @JvmOverloads constructor(
                 downX = event.rawX.toInt()
                 lastX = downX
                 isScrollingVertically = false
-                isScrollingHorizontally = false
-                isScrollDisabled = false
                 initOrResetVelocityTracker()
                 velocityTracker?.addMovement(vtev)
-                maxScrollX = computeHorizontalScrollRange() - width
                 maxScrollY = computeVerticalScrollRange() - height
                 startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL)
                 parent?.requestDisallowInterceptTouchEvent(true)
             }
             MotionEvent.ACTION_POINTER_DOWN -> {
                 // User is doing scaling
-                isScrollDisabled = true
                 isScrollingVertically = false
             }
             MotionEvent.ACTION_MOVE -> {
-                if (isScrollDisabled) {
-                    return super.onTouchEvent(event)
-                }
                 initVelocityTrackerIfNotExists()
                 velocityTracker?.addMovement(vtev)
                 val x = event.rawX.toInt()
                 val y = event.rawY.toInt()
 
                 if (!isScrollingVertically && abs(y - downY) > touchSlop) {
-                    if (!isScrollingHorizontally) {
-                        // Start scrolling, send ACTION_CANCEL event, then WebView can dispose event handling
-                        event.action = MotionEvent.ACTION_CANCEL
-                        super.onTouchEvent(event)
-                    }
+                    // Start scrolling, send ACTION_CANCEL event, then WebView can dispose event handling
+                    event.action = MotionEvent.ACTION_CANCEL
+                    super.onTouchEvent(event)
                     isScrollingVertically = true
                 }
-                if (!isScrollingHorizontally && abs(x - downX) > touchSlop) {
-                    if (!isScrollingVertically) {
-                        // Start scrolling, send ACTION_CANCEL event, then WebView can dispose event handling
-                        event.action = MotionEvent.ACTION_CANCEL
-                        super.onTouchEvent(event)
-                    }
-                    isScrollingHorizontally = true
-                }
-                val dx: Int = if (isScrollingHorizontally) lastX - x else 0
                 val dy: Int = if (isScrollingVertically) lastY - y else 0
                 lastY = y
                 lastX = x
-                if (dy != 0 || dx != 0) {
+                if (dy != 0) {
                     parent?.requestDisallowInterceptTouchEvent(true)
-                    scrollingChildHelper.dispatchNestedPreScroll(dx, dy, scrollConsumed, null, ViewCompat.TYPE_TOUCH)
-                    val unconsumedX = dx - scrollConsumed[0]
+                    scrollingChildHelper.dispatchNestedPreScroll(0, dy, scrollConsumed, null, ViewCompat.TYPE_TOUCH)
+                    val unconsumedX = -scrollConsumed[0]
                     val unconsumedY = dy - scrollConsumed[1]
                     scrollConsumed[0] = 0
                     scrollConsumed[1] = 0
@@ -134,7 +113,7 @@ class NestedScrollingTextView @JvmOverloads constructor(
                 recycleVelocityTracker()
             }
             MotionEvent.ACTION_UP -> {
-                if ((isScrollingHorizontally || isScrollingVertically) && !isScrollDisabled) {
+                if (isScrollingVertically) {
                     velocityTracker?.let { vt ->
                         vt.addMovement(vtev)
                         vt.computeCurrentVelocity(1000, maximumFlingVelocity.toFloat())
@@ -145,7 +124,7 @@ class NestedScrollingTextView @JvmOverloads constructor(
             }
         }
         vtev.recycle()
-        if (!isScrollingHorizontally && !isScrollingVertically) {
+        if (!isScrollingVertically) {
             super.onTouchEvent(event)
         }
         return true
@@ -173,9 +152,6 @@ class NestedScrollingTextView @JvmOverloads constructor(
             toY = 0
         }
 
-        if (maxScrollX != 0 && toX > maxScrollX) {
-            toX = maxScrollX
-        }
         if (maxScrollY != 0 && toY > maxScrollY) {
             toY = maxScrollY
         }
@@ -343,6 +319,6 @@ class NestedScrollingTextView @JvmOverloads constructor(
 
     companion object {
         private const val TAG = "NestedScrollingTextView"
-        private const val DEBUG = false
+        private const val DEBUG = true
     }
 }

@@ -22,7 +22,7 @@ class NestedScrollingRecyclerView @JvmOverloads constructor(
 
     private val location = IntArray(2)
     private val childLocation = IntArray(2)
-    private val webViews = HashSet<NestedScrollingTextView>()
+    private val textViews = HashSet<NestedScrollingTextView>()
 
     init {
         val viewConfig = ViewConfiguration.get(context)
@@ -34,7 +34,7 @@ class NestedScrollingRecyclerView @JvmOverloads constructor(
     override fun dispatchNestedPreScroll(dx: Int, dy: Int, consumed: IntArray?, offsetInWindow: IntArray?): Boolean {
         return if (consumed != null) {
             val handled =  super.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow)
-            return dispatchScrollToWebView(dx, dy, consumed) || handled
+            return dispatchScrollToTextView(dy, consumed) || handled
         } else {
             super.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow)
         }
@@ -43,26 +43,26 @@ class NestedScrollingRecyclerView @JvmOverloads constructor(
     override fun dispatchNestedPreScroll(dx: Int, dy: Int, consumed: IntArray?, offsetInWindow: IntArray?, type: Int): Boolean {
         return if (consumed != null) {
             val handled = super.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow, type)
-            return dispatchScrollToWebView(dx, dy, consumed) || handled
+            return dispatchScrollToTextView(dy, consumed) || handled
         } else {
-            super.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow, type)
+            super.dispatchNestedPreScroll(dx, dy, null, offsetInWindow, type)
         }
     }
 
-    private fun dispatchScrollToWebView(dx: Int, dy: Int, consumed: IntArray): Boolean {
-        if (dy == 0 && dx == 0) {
+    private fun dispatchScrollToTextView(dy: Int, consumed: IntArray): Boolean {
+        if (dy == 0) {
             return false
         }
-        val webView = findTargetWebView(dy) ?: return false
+        val textView = findTargetTextView(dy) ?: return false
         this.getLocationInWindow(location)
-        webView.getLocationInWindow(childLocation)
+        textView.getLocationInWindow(childLocation)
 
         val distance = childLocation[1] - location[1]
-        // Only scroll WebView vertically when the distance is smaller than scroll value,
+        // Only scroll TextView vertically when the distance is smaller than scroll value,
         if (abs(distance) < abs(dy)) {
-            return webView.consumeScroll(dx, dy - distance, consumed)
+            return textView.consumeScroll(dy - distance, consumed)
         }
-        return webView.consumeScroll(dx, 0, consumed)
+        return textView.consumeScroll(0, consumed)
     }
 
     override fun onStartNestedScroll(child: View, target: View, axes: Int, type: Int): Boolean {
@@ -82,7 +82,6 @@ class NestedScrollingRecyclerView @JvmOverloads constructor(
     }
 
     override fun onNestedPreScroll(target: View, dx: Int, dy: Int, consumed: IntArray, type: Int) {
-        consumed[0] = 0
         consumed[1] = 0
         if (target is NestedScrollingTextView) {
             this.getLocationInWindow(location)
@@ -126,31 +125,31 @@ class NestedScrollingRecyclerView @JvmOverloads constructor(
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        webViews.forEach { it.adjustHeight() }
+        textViews.forEach { it.adjustHeight() }
     }
 
-    fun onWebViewDetached(webView: NestedScrollingTextView) {
-        webViews.remove(webView)
+    fun onTextViewDetached(textView: NestedScrollingTextView) {
+        textViews.remove(textView)
     }
 
-    fun onWebViewAttached(webView: NestedScrollingTextView) {
-        webViews.add(webView)
+    fun onTextViewAttached(textView: NestedScrollingTextView) {
+        textViews.add(textView)
     }
 
     /**
-     * Find the target WebView we depends on when scrolling
+     * Find the target TextView we depends on when scrolling
      */
-    private fun findTargetWebView(dy: Int): NestedScrollingTextView? {
-        if (webViews.isEmpty()) {
+    private fun findTargetTextView(dy: Int): NestedScrollingTextView? {
+        if (textViews.isEmpty()) {
             return null
         }
         return if (dy > 0) {
-            webViews.maxByOrNull {
+            textViews.maxByOrNull {
                 it.getLocationInWindow(childLocation)
                 childLocation[1]
             }
         } else {
-            webViews.minByOrNull {
+            textViews.minByOrNull {
                 it.getLocationInWindow(childLocation)
                 childLocation[1]
             }

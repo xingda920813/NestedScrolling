@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2020.
- * Microsoft Corporation. All rights reserved.
- */
-
 package com.contoso.nestedscrolling
 
 import android.annotation.SuppressLint
@@ -35,8 +30,6 @@ class NestedScrollingTextView @JvmOverloads constructor(
     private val maximumFlingVelocity: Int
     private var velocityTracker: VelocityTracker? = null
 
-    private var downX = 0
-    private var lastX = 0
     private var downY = 0
     private var lastY = 0
     private var maxScrollY = 0
@@ -70,8 +63,6 @@ class NestedScrollingTextView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 downY = event.rawY.toInt()
                 lastY = downY
-                downX = event.rawX.toInt()
-                lastX = downX
                 isScrollingVertically = false
                 initOrResetVelocityTracker()
                 velocityTracker?.addMovement(vtev)
@@ -79,45 +70,34 @@ class NestedScrollingTextView @JvmOverloads constructor(
                 startNestedScroll(ViewCompat.SCROLL_AXIS_VERTICAL)
                 parent?.requestDisallowInterceptTouchEvent(true)
             }
-            MotionEvent.ACTION_POINTER_DOWN -> {
-                // User is doing scaling
-                isScrollingVertically = false
-            }
             MotionEvent.ACTION_MOVE -> {
                 initVelocityTrackerIfNotExists()
                 velocityTracker?.addMovement(vtev)
-                val x = event.rawX.toInt()
                 val y = event.rawY.toInt()
 
                 if (!isScrollingVertically && abs(y - downY) > touchSlop) {
-                    // Start scrolling, send ACTION_CANCEL event, then WebView can dispose event handling
+                    // Start scrolling, send ACTION_CANCEL event, then TextView can dispose event handling
                     event.action = MotionEvent.ACTION_CANCEL
                     super.onTouchEvent(event)
                     isScrollingVertically = true
                 }
                 val dy: Int = if (isScrollingVertically) lastY - y else 0
                 lastY = y
-                lastX = x
                 if (dy != 0) {
                     parent?.requestDisallowInterceptTouchEvent(true)
                     scrollingChildHelper.dispatchNestedPreScroll(0, dy, scrollConsumed, null, ViewCompat.TYPE_TOUCH)
-                    val unconsumedX = -scrollConsumed[0]
                     val unconsumedY = dy - scrollConsumed[1]
-                    scrollConsumed[0] = 0
                     scrollConsumed[1] = 0
-                    consumeScroll(unconsumedX, unconsumedY, scrollConsumed)
-                    scrollingChildHelper.dispatchNestedScroll(scrollConsumed[0], scrollConsumed[1], unconsumedX - scrollConsumed[0], unconsumedY - scrollConsumed[1], null, ViewCompat.TYPE_TOUCH, null)
+                    consumeScroll(unconsumedY, scrollConsumed)
+                    scrollingChildHelper.dispatchNestedScroll(0, scrollConsumed[1], 0, unconsumedY - scrollConsumed[1], null, ViewCompat.TYPE_TOUCH, null)
                 }
-            }
-            MotionEvent.ACTION_CANCEL -> {
-                recycleVelocityTracker()
             }
             MotionEvent.ACTION_UP -> {
                 if (isScrollingVertically) {
                     velocityTracker?.let { vt ->
                         vt.addMovement(vtev)
                         vt.computeCurrentVelocity(1000, maximumFlingVelocity.toFloat())
-                        flingScroll((-vt.xVelocity).toInt(), -vt.yVelocity.toInt())
+                        flingScroll(-vt.yVelocity.toInt())
                     }
                 }
                 recycleVelocityTracker()
@@ -130,9 +110,9 @@ class NestedScrollingTextView @JvmOverloads constructor(
         return true
     }
 
-    private fun flingScroll(vx: Int, vy: Int) {
+    private fun flingScroll(vy: Int) {
         if (DEBUG) {
-            Log.d(TAG, "flingScroll: vx=$vx, vy=$vy")
+            Log.d(TAG, "flingScroll: vy=$vy")
         }
         // Delegate fling to recycler view, this can use the same fling affect as recycler view
         if (vy != 0) {
@@ -142,21 +122,14 @@ class NestedScrollingTextView @JvmOverloads constructor(
     }
 
     override fun scrollTo(x: Int, y: Int) {
-        var toX = x
         var toY = y
-
-        if (toX < 0) {
-            toX = 0
-        }
         if (toY < 0) {
             toY = 0
         }
-
         if (maxScrollY != 0 && toY > maxScrollY) {
             toY = maxScrollY
         }
-
-        super.scrollTo(toX, toY)
+        super.scrollTo(x, toY)
     }
 
     private fun initOrResetVelocityTracker() {
@@ -191,18 +164,15 @@ class NestedScrollingTextView @JvmOverloads constructor(
                 parent = parent.parent as? ViewGroup
             }
         }
-        check(scrollParent != null) { "Couldn't find NestedScrollingRecyclerView" }
-        scrollParent?.let { scrollParent ->
-            scrollParent.onWebViewAttached(this)
-            adjustHeight()
-        }
+        scrollParent!!.onTextViewAttached(this)
+        adjustHeight()
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         scrollingChildHelper.onDetachedFromWindow()
         recycleVelocityTracker()
-        scrollParent?.onWebViewDetached(this)
+        scrollParent?.onTextViewDetached(this)
         scrollParent = null
     }
 
@@ -221,25 +191,19 @@ class NestedScrollingTextView @JvmOverloads constructor(
         }
     }
 
-    fun consumeScroll(unconsumedX: Int, unconsumedY: Int, consumed: IntArray): Boolean {
-        val oldScrollX = scrollX
+    fun consumeScroll(unconsumedY: Int, consumed: IntArray): Boolean {
         val oldScrollY = scrollY
-        if (!canScrollVertically(unconsumedY)) {
-            if (unconsumedX != 0) {
-                scrollBy(unconsumedX, 0)
-            }
-        } else {
-            if (unconsumedX != 0 || unconsumedY != 0) {
-                scrollBy(unconsumedX, unconsumedY)
+        if (canScrollVertically(unconsumedY)) {
+            if (unconsumedY != 0) {
+                scrollBy(0, unconsumedY)
             }
 
             if (DEBUG) {
                 Log.d(TAG, "consumeDy: unconsumed=$unconsumedY, consumed=${scrollY - oldScrollY}")
             }
         }
-        consumed[0] += scrollX - oldScrollX
         consumed[1] += scrollY - oldScrollY
-        return scrollX - oldScrollX != 0 || scrollY - oldScrollY != 0
+        return scrollY - oldScrollY != 0
     }
 
     override fun setNestedScrollingEnabled(enabled: Boolean) {
@@ -302,7 +266,7 @@ class NestedScrollingTextView @JvmOverloads constructor(
         if (DEBUG) {
             canvas.save()
             canvas.translate(0F, scrollY.toFloat())
-            val parent = scrollParent ?: throw IllegalStateException("No scroll parent")
+            val parent = scrollParent!!
             parent.getLocationInWindow(parentLocation)
             this.getLocationInWindow(selfLocation)
             val textY = context.resources.displayMetrics.density * 14
@@ -312,7 +276,7 @@ class NestedScrollingTextView @JvmOverloads constructor(
                 textY,
                 paint
             )
-            canvas.drawText("scrollX=$scrollX, scrollY = $scrollY, maxScrollY=${computeVerticalScrollRange() - height}", 0f, textY + textY + 12, paint)
+            canvas.drawText("scrollY = $scrollY, maxScrollY=${computeVerticalScrollRange() - height}", 0f, textY + textY + 12, paint)
             canvas.restore()
         }
     }

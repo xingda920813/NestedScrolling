@@ -6,8 +6,8 @@
     <application>
 
         <activity
-            android:name=".Before"
-            android:label="Before">
+            android:name=".Before2"
+            android:label="Before2">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -15,8 +15,8 @@
         </activity>
 
         <activity
-            android:name=".After"
-            android:label="After">
+            android:name=".After2"
+            android:label="After2">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

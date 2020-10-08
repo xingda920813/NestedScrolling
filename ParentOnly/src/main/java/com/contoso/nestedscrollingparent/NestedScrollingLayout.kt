@@ -13,7 +13,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.RecyclerView
 import com.contoso.nestedscrollingparent.model.NestedViewModel
 
-class NestedScrollingLayout : FrameLayout, NestedScrollingParent2 {
+class NestedScrollingLayout @JvmOverloads constructor(
+    context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
+) : FrameLayout(context, attrs, defStyleAttr), NestedScrollingParent2 {
 
     // The outer RecyclerView, contains 5 header pictures and the ViewPager
     private lateinit var outerRecyclerView: RecyclerView
@@ -25,9 +27,6 @@ class NestedScrollingLayout : FrameLayout, NestedScrollingParent2 {
     private var innerRecyclerView: RecyclerView? = null
 
     private var axes = ViewCompat.SCROLL_AXIS_NONE
-
-    constructor(context: Context) : super(context)
-    constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
 
     init {
         isNestedScrollingEnabled = true

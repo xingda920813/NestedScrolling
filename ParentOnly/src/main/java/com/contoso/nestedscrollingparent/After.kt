@@ -44,7 +44,7 @@ class After : AppCompatActivity() {
     }
 
     private fun initAdapter() {
-        val viewHolders = SparseArray<Class<out BaseViewHolder<*>>>()
+        val viewHolders = SparseArray<Class<out BaseViewHolder<out Any?>>>()
         viewHolders.put(ViewType.TYPE_PARENT, ImageViewHolder::class.java)
         viewHolders.put(ViewType.TYPE_PAGER, PagerViewHolder::class.java)
         val ids = intArrayOf(R.mipmap.pic1, R.mipmap.pic2, R.mipmap.pic3, R.mipmap.pic4, R.mipmap.pic5)

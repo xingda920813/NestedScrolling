@@ -16,17 +16,27 @@ class Before2 : Activity() {
         rv.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
         setContentView(rv)
         rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            override fun onCreateViewHolder(
+                parent: ViewGroup,
+                viewType: Int
+            ): RecyclerView.ViewHolder {
                 return object : RecyclerView.ViewHolder(TextView(parent.context).apply {
                     textSize = 20F
-                    layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                    layoutParams = RecyclerView.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
                 }) {}
             }
 
             @SuppressLint("SetTextI18n")
             override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
                 val tv = holder.itemView as TextView
-                tv.text = " #$position\n".repeat(60)
+                val sb = StringBuilder()
+                for (i in 0 until 60) {
+                    sb.append(" #").append(position).append(", L").append(i).append('\n')
+                }
+                tv.text = sb
             }
 
             override fun getItemCount(): Int {

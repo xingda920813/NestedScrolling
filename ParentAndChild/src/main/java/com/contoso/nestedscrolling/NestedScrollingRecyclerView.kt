@@ -3,7 +3,6 @@ package com.contoso.nestedscrolling
 import android.content.Context
 import android.util.AttributeSet
 import android.view.View
-import android.view.ViewConfiguration
 import androidx.core.view.NestedScrollingParent2
 import androidx.core.view.NestedScrollingParentHelper
 import androidx.core.view.ViewCompat
@@ -16,37 +15,34 @@ class NestedScrollingRecyclerView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : RecyclerView(context, attrs, defStyleAttr), NestedScrollingParent2 {
 
-    private val scrollingParentHelper = NestedScrollingParentHelper(this)
-    private val touchSlop: Int
-    private val maximumVelocity: Int
+    private val parentHelper = NestedScrollingParentHelper(this)
 
     private val location = IntArray(2)
     private val childLocation = IntArray(2)
     private val textViews = HashSet<NestedScrollingTextView>()
 
     init {
-        val viewConfig = ViewConfiguration.get(context)
-        touchSlop = viewConfig.scaledTouchSlop
-        maximumVelocity = viewConfig.scaledMaximumFlingVelocity
         isNestedScrollingEnabled = true
     }
 
-    override fun dispatchNestedPreScroll(dx: Int, dy: Int, consumed: IntArray?, offsetInWindow: IntArray?): Boolean {
-        return if (consumed != null) {
-            val handled =  super.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow)
-            return dispatchScrollToTextView(dy, consumed) || handled
-        } else {
-            super.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow)
-        }
-    }
+    override fun dispatchNestedPreScroll(
+        dx: Int,
+        dy: Int,
+        consumed: IntArray?,
+        offsetInWindow: IntArray?
+    ) = dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow, ViewCompat.TYPE_TOUCH)
 
-    override fun dispatchNestedPreScroll(dx: Int, dy: Int, consumed: IntArray?, offsetInWindow: IntArray?, type: Int): Boolean {
-        return if (consumed != null) {
-            val handled = super.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow, type)
-            return dispatchScrollToTextView(dy, consumed) || handled
-        } else {
-            super.dispatchNestedPreScroll(dx, dy, null, offsetInWindow, type)
-        }
+    override fun dispatchNestedPreScroll(
+        dx: Int,
+        dy: Int,
+        consumed: IntArray?,
+        offsetInWindow: IntArray?,
+        type: Int
+    ) = if (consumed != null) {
+        val handled = super.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow, type)
+        dispatchScrollToTextView(dy, consumed) || handled
+    } else {
+        super.dispatchNestedPreScroll(dx, dy, null, offsetInWindow, type)
     }
 
     private fun dispatchScrollToTextView(dy: Int, consumed: IntArray): Boolean {
@@ -70,18 +66,19 @@ class NestedScrollingRecyclerView @JvmOverloads constructor(
     }
 
     override fun getNestedScrollAxes(): Int {
-        return scrollingParentHelper.nestedScrollAxes
+        return parentHelper.nestedScrollAxes
     }
 
     override fun onNestedScrollAccepted(child: View, target: View, axes: Int, type: Int) {
-        scrollingParentHelper.onNestedScrollAccepted(child, target, axes, type)
+        parentHelper.onNestedScrollAccepted(child, target, axes, type)
     }
 
     override fun onStopNestedScroll(target: View, type: Int) {
-        scrollingParentHelper.onStopNestedScroll(target, type)
+        parentHelper.onStopNestedScroll(target, type)
     }
 
     override fun onNestedPreScroll(target: View, dx: Int, dy: Int, consumed: IntArray, type: Int) {
+        consumed[0] = 0
         consumed[1] = 0
         if (target is NestedScrollingTextView) {
             this.getLocationInWindow(location)
@@ -105,7 +102,14 @@ class NestedScrollingRecyclerView @JvmOverloads constructor(
         }
     }
 
-    override fun onNestedScroll(target: View, dxConsumed: Int, dyConsumed: Int, dxUnconsumed: Int, dyUnconsumed: Int, type: Int) {
+    override fun onNestedScroll(
+        target: View,
+        dxConsumed: Int,
+        dyConsumed: Int,
+        dxUnconsumed: Int,
+        dyUnconsumed: Int,
+        type: Int
+    ) {
         if (dyUnconsumed != 0 || dxUnconsumed != 0) {
             scrollBy(dxUnconsumed, dyUnconsumed)
         }
@@ -119,9 +123,12 @@ class NestedScrollingRecyclerView @JvmOverloads constructor(
         return false
     }
 
-    override fun onNestedFling(target: View, velocityX: Float, velocityY: Float, consumed: Boolean): Boolean {
-        return false
-    }
+    override fun onNestedFling(
+        target: View,
+        velocityX: Float,
+        velocityY: Float,
+        consumed: Boolean
+    ) = false
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)

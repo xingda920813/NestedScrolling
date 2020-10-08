@@ -24,7 +24,7 @@ class NestedScrollingTextView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : AppCompatTextView(context, attrs, defStyleAttr), NestedScrollingChild2 {
 
-    private val scrollingChildHelper by lazy { NestedScrollingChildHelper(this) }
+    private val childHelper = NestedScrollingChildHelper(this)
     private val scrollConsumed = IntArray(2)
     private val touchSlop: Int
     private val maximumFlingVelocity: Int
@@ -85,11 +85,25 @@ class NestedScrollingTextView @JvmOverloads constructor(
                 lastY = y
                 if (dy != 0) {
                     parent?.requestDisallowInterceptTouchEvent(true)
-                    scrollingChildHelper.dispatchNestedPreScroll(0, dy, scrollConsumed, null, ViewCompat.TYPE_TOUCH)
+                    childHelper.dispatchNestedPreScroll(
+                        0,
+                        dy,
+                        scrollConsumed,
+                        null,
+                        ViewCompat.TYPE_TOUCH
+                    )
                     val unconsumedY = dy - scrollConsumed[1]
                     scrollConsumed[1] = 0
                     consumeScroll(unconsumedY, scrollConsumed)
-                    scrollingChildHelper.dispatchNestedScroll(0, scrollConsumed[1], 0, unconsumedY - scrollConsumed[1], null, ViewCompat.TYPE_TOUCH, null)
+                    childHelper.dispatchNestedScroll(
+                        0,
+                        scrollConsumed[1],
+                        0,
+                        unconsumedY - scrollConsumed[1],
+                        null,
+                        ViewCompat.TYPE_TOUCH,
+                        null
+                    )
                 }
             }
             MotionEvent.ACTION_UP -> {
@@ -170,18 +184,20 @@ class NestedScrollingTextView @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        scrollingChildHelper.onDetachedFromWindow()
+        childHelper.onDetachedFromWindow()
         recycleVelocityTracker()
         scrollParent?.onTextViewDetached(this)
         scrollParent = null
     }
 
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-        renderingHeight = measuredHeight
+    override fun setHeight(height: Int) {
+        renderingHeight = height
+        val params = layoutParams
         val parent = scrollParent
-        if (parent != null) {
-            setMeasuredDimension(measuredWidth, minOf(measuredHeight, parent.measuredHeight))
+        if (params != null && parent != null) {
+            super.setHeight(minOf(height, parent.measuredHeight))
+        } else {
+            super.setHeight(height)
         }
     }
 
@@ -207,16 +223,18 @@ class NestedScrollingTextView @JvmOverloads constructor(
     }
 
     override fun setNestedScrollingEnabled(enabled: Boolean) {
-        scrollingChildHelper.isNestedScrollingEnabled = enabled
+        childHelper.isNestedScrollingEnabled = enabled
     }
 
-    override fun isNestedScrollingEnabled(): Boolean = scrollingChildHelper.isNestedScrollingEnabled
+    override fun isNestedScrollingEnabled(): Boolean = childHelper.isNestedScrollingEnabled
 
-    override fun startNestedScroll(axes: Int): Boolean = scrollingChildHelper.startNestedScroll(axes)
+    override fun startNestedScroll(axes: Int): Boolean =
+        childHelper.startNestedScroll(axes)
 
-    override fun stopNestedScroll() = scrollingChildHelper.stopNestedScroll()
+    override fun stopNestedScroll() = childHelper.stopNestedScroll()
 
-    override fun hasNestedScrollingParent(): Boolean = scrollingChildHelper.hasNestedScrollingParent()
+    override fun hasNestedScrollingParent(): Boolean =
+        childHelper.hasNestedScrollingParent()
 
     override fun dispatchNestedScroll(
         dxConsumed: Int,
@@ -226,39 +244,54 @@ class NestedScrollingTextView @JvmOverloads constructor(
         offsetInWindow: IntArray?,
         type: Int
     ): Boolean {
-        return scrollingChildHelper.dispatchNestedScroll(
+        return childHelper.dispatchNestedScroll(
             dxConsumed, dyConsumed,
             dxUnconsumed, dyUnconsumed,
             offsetInWindow, type
         )
     }
 
-    override fun dispatchNestedPreScroll(dx: Int, dy: Int, consumed: IntArray?, offsetInWindow: IntArray?): Boolean {
-        return scrollingChildHelper.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow)
+    override fun dispatchNestedPreScroll(
+        dx: Int,
+        dy: Int,
+        consumed: IntArray?,
+        offsetInWindow: IntArray?
+    ): Boolean {
+        return childHelper.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow)
     }
 
-    override fun dispatchNestedPreScroll(dx: Int, dy: Int, consumed: IntArray?, offsetInWindow: IntArray?, type: Int): Boolean {
-        return scrollingChildHelper.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow, type)
+    override fun dispatchNestedPreScroll(
+        dx: Int,
+        dy: Int,
+        consumed: IntArray?,
+        offsetInWindow: IntArray?,
+        type: Int
+    ): Boolean {
+        return childHelper.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow, type)
     }
 
-    override fun dispatchNestedFling(velocityX: Float, velocityY: Float, consumed: Boolean): Boolean {
-        return scrollingChildHelper.dispatchNestedFling(velocityX, velocityY, consumed)
+    override fun dispatchNestedFling(
+        velocityX: Float,
+        velocityY: Float,
+        consumed: Boolean
+    ): Boolean {
+        return childHelper.dispatchNestedFling(velocityX, velocityY, consumed)
     }
 
     override fun dispatchNestedPreFling(velocityX: Float, velocityY: Float): Boolean {
-        return scrollingChildHelper.dispatchNestedPreFling(velocityX, velocityY)
+        return childHelper.dispatchNestedPreFling(velocityX, velocityY)
     }
 
     override fun stopNestedScroll(type: Int) {
-        scrollingChildHelper.stopNestedScroll(type)
+        childHelper.stopNestedScroll(type)
     }
 
     override fun hasNestedScrollingParent(type: Int): Boolean {
-        return scrollingChildHelper.hasNestedScrollingParent(type)
+        return childHelper.hasNestedScrollingParent(type)
     }
 
     override fun startNestedScroll(axes: Int, type: Int): Boolean {
-        return scrollingChildHelper.startNestedScroll(axes, type)
+        return childHelper.startNestedScroll(axes, type)
     }
 
     override fun dispatchDraw(canvas: Canvas) {
@@ -276,7 +309,12 @@ class NestedScrollingTextView @JvmOverloads constructor(
                 textY,
                 paint
             )
-            canvas.drawText("scrollY = $scrollY, maxScrollY=${computeVerticalScrollRange() - height}", 0f, textY + textY + 12, paint)
+            canvas.drawText(
+                "scrollY = $scrollY, maxScrollY=${computeVerticalScrollRange() - height}",
+                0f,
+                textY + textY + 12,
+                paint
+            )
             canvas.restore()
         }
     }

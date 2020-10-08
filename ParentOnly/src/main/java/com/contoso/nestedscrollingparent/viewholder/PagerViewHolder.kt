@@ -38,12 +38,14 @@ class PagerViewHolder(itemView: View) : BaseViewHolder<List<PageVO>>(itemView) {
             override fun onViewAttachedToWindow(v: View) {
                 viewPager.requestLayout()
             }
+
             override fun onViewDetachedFromWindow(v: View) = Unit
         })
         itemView.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(view: View) {
                 viewModel?.innerViewContainer?.value = itemView
             }
+
             override fun onViewDetachedFromWindow(view: View) {
                 viewModel?.innerViewContainer?.value = null
             }

@@ -24,9 +24,11 @@ class SubFragment : Fragment() {
     private lateinit var adapter: RecyclerView.Adapter<BaseViewHolder<out Any?>>
     private var viewModel: NestedViewModel? = null
 
-    override fun onCreateView(inflater: LayoutInflater,
-                              container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
         val view = inflater.inflate(R.layout.goods_list, container, false)
         init(view)
         return view

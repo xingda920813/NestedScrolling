@@ -5,6 +5,7 @@ import android.util.AttributeSet
 import android.view.View
 import android.widget.FrameLayout
 import androidx.core.view.NestedScrollingParent2
+import androidx.core.view.NestedScrollingParentHelper
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
@@ -26,7 +27,7 @@ class NestedScrollingLayout @JvmOverloads constructor(
     // The inner RecyclerView under a tab, contains 20 TextViews
     private var innerRecyclerView: RecyclerView? = null
 
-    private var axes = ViewCompat.SCROLL_AXIS_NONE
+    private val parentHelper = NestedScrollingParentHelper(this)
 
     init {
         isNestedScrollingEnabled = true
@@ -47,19 +48,26 @@ class NestedScrollingLayout @JvmOverloads constructor(
     }
 
     override fun onStartNestedScroll(child: View, target: View, axes: Int, type: Int): Boolean {
-        return isNestedScrollingEnabled && axes == ViewCompat.SCROLL_AXIS_VERTICAL
+        return (axes and ViewCompat.SCROLL_AXIS_VERTICAL) != 0
     }
 
-    override fun onNestedScrollAccepted(child: View, target: View, axes: Int, type: Int) {
-        this.axes = axes
-    }
+    override fun onNestedScrollAccepted(child: View, target: View, axes: Int) =
+        parentHelper.onNestedScrollAccepted(child, target, axes)
 
-    override fun onStopNestedScroll(target: View, type: Int) {
-        axes = ViewCompat.SCROLL_AXIS_NONE
-    }
+    override fun onNestedScrollAccepted(child: View, target: View, axes: Int, type: Int) =
+        parentHelper.onNestedScrollAccepted(child, target, axes, type)
 
-    override fun onNestedScroll(target: View, dxConsumed: Int, dyConsumed: Int, dxUnconsumed: Int,
-                                dyUnconsumed: Int, type: Int) = Unit
+    override fun getNestedScrollAxes() = parentHelper.nestedScrollAxes
+
+    override fun onStopNestedScroll(target: View) = parentHelper.onStopNestedScroll(target)
+
+    override fun onStopNestedScroll(target: View, type: Int) =
+        parentHelper.onStopNestedScroll(target, type)
+
+    override fun onNestedScroll(
+        target: View, dxConsumed: Int, dyConsumed: Int, dxUnconsumed: Int,
+        dyUnconsumed: Int, type: Int
+    ) = Unit
 
     override fun onNestedPreScroll(target: View, dx: Int, dy: Int, consumed: IntArray, type: Int) {
         innerViewContainer ?: return
@@ -82,6 +90,4 @@ class NestedScrollingLayout @JvmOverloads constructor(
             }
         }
     }
-
-    override fun getNestedScrollAxes() = axes
 }

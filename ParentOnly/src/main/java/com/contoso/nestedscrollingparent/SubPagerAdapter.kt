@@ -7,8 +7,8 @@ import androidx.fragment.app.FragmentStatePagerAdapter
 import com.contoso.nestedscrollingparent.model.PageVO
 
 class SubPagerAdapter(
-        fm: FragmentManager,
-        private val itemList: List<PageVO>
+    fm: FragmentManager,
+    private val itemList: List<PageVO>
 ) : FragmentStatePagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
 
     override fun getItem(position: Int): Fragment {

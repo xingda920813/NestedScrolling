@@ -9,9 +9,9 @@ import androidx.recyclerview.widget.RecyclerView
 import java.lang.reflect.Constructor
 
 class Adapter(
-        private val itemList: List<AdapterItem<out Any?>>,
-        context: Context,
-        private val viewHolders: SparseArray<Class<out BaseViewHolder<out Any?>>>
+    private val itemList: List<AdapterItem<out Any?>>,
+    context: Context,
+    private val viewHolders: SparseArray<Class<out BaseViewHolder<out Any?>>>
 ) : RecyclerView.Adapter<BaseViewHolder<out Any?>>() {
 
     private val inflater = LayoutInflater.from(context)
@@ -44,6 +44,6 @@ class Adapter(
                 Constructor<out BaseViewHolder<out Any?>>>()
 
         private fun Class<out BaseViewHolder<out Any?>>.getCtor() =
-                ctorCache.getOrPut(this) { getConstructor(View::class.java) }
+            ctorCache.getOrPut(this) { getConstructor(View::class.java) }
     }
 }
